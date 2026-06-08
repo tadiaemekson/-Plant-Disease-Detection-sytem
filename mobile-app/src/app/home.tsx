@@ -18,6 +18,7 @@ import {
   BookOpen,
   Sprout,
   Compass,
+  X,
 } from "lucide-react-native";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -127,8 +128,126 @@ const weeklyTips = [
   },
 ];
 
+const tipDetails: Record<number, {
+  id: number;
+  title: string;
+  tag: string;
+  gradient: string[];
+  icon: any;
+  overview: string;
+  sections: { title: string; points: string[] }[];
+  botanistTip: string;
+}> = {
+  1: {
+    id: 1,
+    title: "Understanding Soil pH",
+    tag: "Soil Health",
+    gradient: ["#0284C7", "#0369A1"],
+    icon: Sprout,
+    overview: "Soil pH measures how acidic or alkaline your soil is, on a scale of 0 to 14. A pH level of 7.0 is neutral. Most crops thrive in slightly acidic to neutral soil (pH 6.0–7.0) because nutrients dissolve easily at this range.",
+    sections: [
+      {
+        title: "Why Soil pH Matters",
+        points: [
+          "Nutrient Lockout: In highly acidic (below 5.5) or alkaline (above 7.5) soils, essential nutrients like phosphorus, iron, and magnesium bind tightly to soil particles, preventing root absorption.",
+          "Microbial Activity: Beneficial soil bacteria and fungi that decompose organic matter thrive in a neutral pH range.",
+          "Root Development: Acidic soils can leach toxic aluminum into the root zone, pruning and damaging root tips."
+        ]
+      },
+      {
+        title: "Typical Crop Preferences",
+        points: [
+          "Slightly Acidic (6.0 - 6.5): Potatoes, Blueberries, Tomatoes, and Peppers.",
+          "Neutral (6.5 - 7.0): Corn, Grapes, Squash, Spinach, and Beans.",
+          "Alkaline Tolerate (7.0 - 7.5): Cabbage, Cauliflower, and Asparagus."
+        ]
+      },
+      {
+        title: "How to Correct Your Soil pH",
+        points: [
+          "To Raise pH (if too acidic): Apply Agricultural Lime (calcium carbonate) or wood ash. Lime adds calcium and neutralizes soil acids.",
+          "To Lower pH (if too alkaline): Add Elemental Sulfur, aluminum sulfate, or peat moss. Sulfur slowly converts to acid through soil bacteria.",
+          "Organic Matter: Consistently adding compost buffers soil pH, keeping it stable over time."
+        ]
+      }
+    ],
+    botanistTip: "Always run a proper soil test before amending. Adding too much lime or sulfur can cause severe nutrient imbalances that take years to resolve."
+  },
+  2: {
+    id: 2,
+    title: "Early Blight Prevention",
+    tag: "Disease Prevention",
+    gradient: ["#EA580C", "#C2410C"],
+    icon: BookOpen,
+    overview: "Early Blight is a destructive fungal infection caused by Alternaria solani. It targets tomato, potato, and eggplant families, overwintering in crop debris and splashing up from the soil during warm, wet weather.",
+    sections: [
+      {
+        title: "Symptoms to Watch For",
+        points: [
+          "Target Spotting: Brown to black spots with concentric target-like rings appear on older lower leaves first.",
+          "Yellow Halos: Leaves surrounding the black target spots turn yellow and eventually drop off.",
+          "Stem & Fruit Lesions: Dark, sunken lesions form near the soil line on stems and on the shoulder of fruits."
+        ]
+      },
+      {
+        title: "Cultural Prevention Checklist",
+        points: [
+          "Bottom-Only Watering: Direct water to the base of the plant using drip tape or a soaker hose. Fungal spores require leaf wetness to germinate.",
+          "Mulching: Cover the soil under your crops with straw, leaves, or plastic sheeting. This blocks spores from splashing onto lower foliage.",
+          "Lower Pruning: Trim off branches within 12 inches of the soil. This prevents leaves from touching the soil and increases lower air circulation."
+        ]
+      },
+      {
+        title: "Organic Management",
+        points: [
+          "Crop Rotation: Wait 2-3 years before planting nightshades (tomatoes, potatoes) in the same soil patch.",
+          "Copper Sprays: Apply organic liquid copper fungicides preventively when humidity is high or at the first sign of lower leaf spots."
+        ]
+      }
+    ],
+    botanistTip: "Rake up and destroy (do not compost) all infected nightshade foliage at the end of the season. Composting does not always get hot enough to kill Alternaria spores."
+  },
+  3: {
+    id: 3,
+    title: "Crop Rotation Guide",
+    tag: "Best Practices",
+    gradient: ["#16A34A", "#15803D"],
+    icon: Compass,
+    overview: "Crop rotation is the practice of growing different crop families in the same area across sequential seasons. This prevents soil-borne pathogens from building up, balances nutrient depletion, and optimizes soil structure.",
+    sections: [
+      {
+        title: "The Four Core Families",
+        points: [
+          "Nightshades (Solanaceae): Tomatoes, Potatoes, Peppers, Eggplants. Heavy feeders that exhaust nitrogen and harbor blights.",
+          "Legumes (Fabaceae): Beans, Peas, Clover. Nitrogen-fixing plants that restore soil fertility by taking nitrogen from the air.",
+          "Crucifers (Brassicaceae): Cabbage, Broccoli, Kale, Radish. Moderate feeders that benefit from clean, nitrogen-rich soil.",
+          "Alliums / Roots (Amaryllidaceae/Apiaceae): Onions, Garlic, Carrots. Light feeders that loosen the soil structure."
+        ]
+      },
+      {
+        title: "Rotation Sequence Rule",
+        points: [
+          "Follow Heavy Feeders (Nightshades) with Nitrogen Builders (Legumes) to replenish the soil.",
+          "Follow Legumes with Moderate Feeders (Crucifers) to utilize the freshly fixed nitrogen.",
+          "Follow Crucifers with Light Feeders (Roots/Alliums) to scavenge residual nutrients before restarting the cycle."
+        ]
+      },
+      {
+        title: "Benefits of Rotation",
+        points: [
+          "Disease Suppression: Spores of blights, wilts, and root rot die out if their host family is absent for 2-3 years.",
+          "Pest Disruption: Breaks the life cycle of overwintering insects like Colorado potato beetles.",
+          "Nutrient Balance: Different root depths and nutrient needs prevent mineral depletion at specific soil zones."
+        ]
+      }
+    ],
+    botanistTip: "Maintain a simple garden map journal. It is easy to forget where nightshades were planted two years ago, especially in small backyard gardens."
+  }
+};
+
 export default function Home() {
   const [search, setSearch] = useState("");
+  const [selectedTip, setSelectedTip] = useState<any | null>(null);
   const router = useRouter();
   const colorScheme = useColorScheme();
   const scheme = (colorScheme === "dark" ? "dark" : "light") as keyof typeof Colors;
@@ -179,9 +298,10 @@ export default function Home() {
           {weeklyTips.map((tip) => {
             const Icon = tip.icon;
             return (
-              <View 
+              <Pressable 
                 key={tip.id} 
                 style={[styles.tipCard, { backgroundColor: theme.backgroundElement, borderColor: theme.backgroundSelected }]}
+                onPress={() => setSelectedTip(tipDetails[tip.id])}
               >
                 <View style={styles.tipHeader}>
                   <View style={styles.tipIconWrapper}>
@@ -191,7 +311,7 @@ export default function Home() {
                 </View>
                 <Text style={[styles.tipTitle, { color: theme.text }]}>{tip.title}</Text>
                 <Text style={[styles.tipDesc, { color: theme.textSecondary }]}>{tip.desc}</Text>
-              </View>
+              </Pressable>
             );
           })}
         </ScrollView>
@@ -253,6 +373,61 @@ export default function Home() {
         </Pressable>
 
       </View>
+
+      {/* DETAILED ADVICE OVERLAY MODAL */}
+      {selectedTip ? (
+        <View style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.65)" }]}>
+          <View style={[styles.modalContent, { backgroundColor: theme.backgroundElement }]}>
+            
+            {/* Modal Header */}
+            <View style={[styles.modalHeader, { backgroundColor: selectedTip.gradient[0] }]}>
+              <View style={styles.modalHeaderLeft}>
+                <View style={styles.modalHeaderIconBg}>
+                  {React.createElement(selectedTip.icon, { size: 22, color: "#FFFFFF" })}
+                </View>
+                <View>
+                  <Text style={styles.modalHeaderTag}>{selectedTip.tag}</Text>
+                  <Text style={styles.modalHeaderTitle}>{selectedTip.title}</Text>
+                </View>
+              </View>
+              <Pressable style={styles.modalCloseIcon} onPress={() => setSelectedTip(null)}>
+                <X color="#FFFFFF" size={20} />
+              </Pressable>
+            </View>
+
+            {/* Modal Body */}
+            <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+              <Text style={[styles.modalOverviewText, { color: theme.text }]}>
+                {selectedTip.overview}
+              </Text>
+
+              {selectedTip.sections.map((section: any, sIdx: number) => (
+                <View key={sIdx} style={styles.modalSection}>
+                  <Text style={[styles.modalSectionTitle, { color: theme.text }]}>{section.title}</Text>
+                  {section.points.map((point: string, pIdx: number) => (
+                    <View key={pIdx} style={styles.modalPointRow}>
+                      <View style={styles.modalPointBullet} />
+                      <Text style={[styles.modalPointText, { color: theme.textSecondary }]}>{point}</Text>
+                    </View>
+                  ))}
+                </View>
+              ))}
+
+              {/* Botanist Tip */}
+              <View style={styles.botanistTipCard}>
+                <Text style={styles.botanistTipLabel}>🌿 BOTANIST ADVICE</Text>
+                <Text style={styles.botanistTipText}>{selectedTip.botanistTip}</Text>
+              </View>
+            </ScrollView>
+
+            {/* Close Button */}
+            <Pressable style={styles.modalCloseButton} onPress={() => setSelectedTip(null)}>
+              <Text style={styles.modalCloseButtonText}>Close Guide</Text>
+            </Pressable>
+
+          </View>
+        </View>
+      ) : null}
 
     </View>
   );
@@ -511,5 +686,138 @@ const styles = StyleSheet.create({
     textAlign: "center",
     color: "#777",
     fontWeight: "600",
+  },
+  modalOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    zIndex: 1000,
+  },
+  modalContent: {
+    width: "100%",
+    maxHeight: "85%",
+    borderRadius: 24,
+    overflow: "hidden",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.15,
+        shadowRadius: 15,
+      },
+      android: {
+        elevation: 10,
+      },
+      web: {
+        boxShadow: "0px 10px 30px rgba(0, 0, 0, 0.15)",
+      },
+    }),
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  modalHeaderIconBg: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalHeaderTag: {
+    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: 11,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  modalHeaderTitle: {
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "bold",
+    marginTop: 2,
+  },
+  modalCloseIcon: {
+    padding: 4,
+    borderRadius: 20,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+  },
+  modalBody: {
+    padding: 20,
+  },
+  modalOverviewText: {
+    fontSize: 14,
+    lineHeight: 22,
+    fontWeight: "500",
+    marginBottom: 20,
+  },
+  modalSection: {
+    marginBottom: 20,
+  },
+  modalSectionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    marginBottom: 10,
+  },
+  modalPointRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginBottom: 8,
+    paddingRight: 10,
+  },
+  modalPointBullet: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#16A34A",
+    marginTop: 7,
+    marginRight: 10,
+  },
+  modalPointText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  botanistTipCard: {
+    backgroundColor: "rgba(22, 163, 74, 0.06)",
+    borderColor: "rgba(22, 163, 74, 0.15)",
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+  },
+  botanistTipLabel: {
+    color: "#16A34A",
+    fontWeight: "800",
+    fontSize: 11,
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  botanistTipText: {
+    color: "#15803D",
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  modalCloseButton: {
+    backgroundColor: "#16A34A",
+    height: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 14,
+  },
+  modalCloseButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "bold",
+    fontSize: 14,
   },
 });
