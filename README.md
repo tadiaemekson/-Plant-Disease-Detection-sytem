@@ -142,5 +142,12 @@ If you want to train the ResNet34 model or custom CNN on your own datasets (e.g.
 
 ---
 
+## 👥 Maintainers & Owners
+
+* **Tadia Emekson** - [@tadiaemekson](https://github.com/tadiaemekson)
+* **Anne Benita** - [@Anne-Benita](https://github.com/Anne-Benita)
+
+---
+
 ## 📄 License
 This project is licensed under the MIT License - see the LICENSE file for details.
