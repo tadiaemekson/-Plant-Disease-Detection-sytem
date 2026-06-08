@@ -47,7 +47,7 @@ export default function SplashScreen() {
   }, []);
 
   return (
-    <View style={[styles.container, { backgroundColor: '#115E59' }]}> {/* Deep Teal/Green */}
+    <View style={[styles.container, { backgroundColor: '#115E59' }]}>
       <SafeAreaView style={styles.content}>
         
         <Animated.View style={[
