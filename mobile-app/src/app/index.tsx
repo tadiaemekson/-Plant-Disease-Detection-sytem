@@ -17,25 +17,30 @@ export default function SplashScreen() {
 
   useEffect(() => {
     // Parallel spring scale and fade entry animations
-    Animated.parallel([
+    const entryAnimation = Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 1000,
-        useNativeDriver: true,
+        useNativeDriver: false, // Set to false for web compatibility
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 5,
         tension: 40,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }),
-    ]).start(() => {
+    ]);
+
+    let textAnimation: Animated.CompositeAnimation | null = null;
+
+    entryAnimation.start(() => {
       // Fade in the subtitle text after logo springs in
-      Animated.timing(textFadeAnim, {
+      textAnimation = Animated.timing(textFadeAnim, {
         toValue: 1,
         duration: 800,
-        useNativeDriver: true,
-      }).start();
+        useNativeDriver: false,
+      });
+      textAnimation.start();
     });
 
     // Navigate to welcome screen after 3.2 seconds
@@ -43,7 +48,13 @@ export default function SplashScreen() {
       router.replace('/welcome');
     }, 3200);
 
-    return () => clearTimeout(timer);
+    return () => {
+      entryAnimation.stop();
+      if (textAnimation) {
+        textAnimation.stop();
+      }
+      clearTimeout(timer);
+    };
   }, []);
 
   return (

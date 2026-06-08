@@ -28,24 +28,33 @@ export default function ScanScreen() {
   const scanAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
+    let loopAnimation: Animated.CompositeAnimation | null = null;
+
     if (loading) {
-      Animated.loop(
+      loopAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(scanAnim, {
             toValue: 1,
             duration: 2000,
-            useNativeDriver: true,
+            useNativeDriver: false, // Set to false for web compatibility
           }),
           Animated.timing(scanAnim, {
             toValue: 0,
             duration: 2000,
-            useNativeDriver: true,
+            useNativeDriver: false,
           }),
         ])
-      ).start();
+      );
+      loopAnimation.start();
     } else {
       scanAnim.setValue(0);
     }
+
+    return () => {
+      if (loopAnimation) {
+        loopAnimation.stop();
+      }
+    };
   }, [loading]);
 
   const translateY = scanAnim.interpolate({
