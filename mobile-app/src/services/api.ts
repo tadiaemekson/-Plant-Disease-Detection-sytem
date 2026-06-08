@@ -4,6 +4,11 @@ const API_HOST = process.env.EXPO_PUBLIC_API_HOST || '192.168.1.132';
 const API_PORT = process.env.EXPO_PUBLIC_API_PORT || '5000';
 
 const getBaseUrl = () => {
+  if (Platform.OS === 'web') {
+    const hostname = typeof window !== 'undefined' && window.location ? window.location.hostname : 'localhost';
+    return `http://${hostname}:5000`;
+  }
+
   if (Platform.OS === 'android') {
     return 'http://10.0.2.2:5000';
   }
