@@ -1,0 +1,9 @@
+numpy
+pandas
+Flask
+Flask-Cors
+Pillow
+gunicorn==20.0.4
+torch==1.8.0+cpu
+torchvision==0.9.0+cpu
+psycopg2-binary

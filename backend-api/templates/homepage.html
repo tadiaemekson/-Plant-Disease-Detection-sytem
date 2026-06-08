@@ -1,0 +1,25 @@
+<section class="about py-lg-4 py-md-3 py-sm-3 py-3">
+  <div class="container">
+    <div class="row justify-content-center">
+
+      <div class="col-md-10 text-center">
+
+        <h2 class="mb-4">Result</h2>
+
+        <h3 class="text-success">
+          {{ prediction }}
+        </h3>
+
+        <p class="mt-2">
+          Confidence: <b>{{ confidence }}%</b>
+        </p>
+
+        <div class="mt-4 text-left">
+          {{ result|safe }}
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</section>
