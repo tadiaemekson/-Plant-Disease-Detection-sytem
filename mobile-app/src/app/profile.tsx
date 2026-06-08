@@ -34,7 +34,8 @@ import {
   AlertTriangle,
   Info,
   Eye,
-  Activity
+  Activity,
+  Pill
 } from "lucide-react-native";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -670,112 +671,156 @@ export default function ProfileScreen() {
         </ScrollView>
 
         {/* Scan Detail Modal Overlay */}
-        {selectedScanDetail ? (
-          <View style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.6)" }]}>
-            <View style={[styles.modalContent, { backgroundColor: theme.backgroundElement }]}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Historical Diagnosis</Text>
+        {selectedScanDetail ? (() => {
+          const isHealthyScan = selectedScanDetail.disease_name?.toLowerCase().includes("healthy") || selectedScanDetail.disease_name?.toLowerCase().includes("no disease");
+          const statusColor = isHealthyScan ? "#16A34A" : "#EF4444";
+          
+          return (
+            <View style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.6)" }]}>
+              <View style={[styles.modalContent, { backgroundColor: theme.backgroundElement }]}>
+                <Text style={[styles.modalTitle, { color: theme.text }]}>Diagnosis Report</Text>
 
-              <ScrollView style={{ width: "100%", marginBottom: 15 }} showsVerticalScrollIndicator={false}>
-                {selectedScanDetail.image_path ? (
-                  <Image source={{ uri: selectedScanDetail.image_path }} style={styles.modalImage} />
-                ) : null}
+                <ScrollView style={{ width: "100%", marginBottom: 15 }} showsVerticalScrollIndicator={false}>
+                  {/* LEAF IMAGE VIEWPORT */}
+                  {selectedScanDetail.image_path ? (
+                    <View style={styles.modalImageFrame}>
+                      <Image 
+                        source={{ uri: selectedScanDetail.image_path }} 
+                        style={styles.modalImage} 
+                        resizeMode="cover"
+                      />
+                      <View style={[styles.modalStatusTag, { backgroundColor: statusColor }]}>
+                        <Text style={styles.modalStatusTagText}>
+                          {isHealthyScan ? "HEALTHY CROP" : "DISEASE DETECTED"}
+                        </Text>
+                      </View>
+                    </View>
+                  ) : null}
 
-                <View style={styles.modalMeta}>
-                  {/* CROP & DIAGNOSIS DETAILS */}
-                  <View style={[styles.card, { backgroundColor: theme.background, padding: 12, borderRadius: 16, marginBottom: 12 }]}>
-                    <Text style={styles.label}>Plant Diagnostics</Text>
-                    <Text style={[styles.modalCrop, { color: theme.textSecondary, marginTop: 4 }]}>
-                      Crop Type: <Text style={{ color: theme.text, fontWeight: "bold" }}>{selectedScanDetail.crop_type}</Text>
-                    </Text>
-                    <Text style={[styles.modalConfidence, { color: theme.textSecondary, marginTop: 4 }]}>
-                      Accuracy: <Text style={{ color: theme.text, fontWeight: "bold" }}>{selectedScanDetail.confidence}%</Text>
-                    </Text>
-                    <Text style={[styles.modalDate, { color: theme.textSecondary, marginTop: 4 }]}>
-                      Scanned: <Text style={{ color: theme.text, fontWeight: "bold" }}>{new Date(selectedScanDetail.created_at).toLocaleString()}</Text>
-                    </Text>
-                  </View>
-
-                  {/* CONDITION NAME */}
-                  <View style={[styles.card, { backgroundColor: theme.background, padding: 12, borderRadius: 16, marginBottom: 12 }]}>
-                    <Text style={styles.label}>Condition Name</Text>
-                    <Text style={[styles.modalDisease, { color: selectedScanDetail.disease_name?.toLowerCase().includes("healthy") ? "#16A34A" : "#DC2626", marginTop: 4 }]}>
-                      {selectedScanDetail.disease_name}
-                    </Text>
-                  </View>
-
-                  {/* CAUSE */}
-                  <View style={[styles.card, { backgroundColor: theme.background, padding: 12, borderRadius: 16, marginBottom: 12 }]}>
-                    <Text style={styles.label}>Cause of Infection</Text>
-                    <Text style={[styles.text, { color: theme.textSecondary, fontSize: 13, marginTop: 4, lineHeight: 18 }]}>
-                      {selectedScanDetail.cause || "No cause details logged."}
-                    </Text>
-                  </View>
-
-                  {/* TREATMENT & PREVENTION */}
-                  {(() => {
-                    const prevention: string[] = [];
-                    const treatment: string[] = [];
-                    const treatmentKeywords = [
-                      "apply", "spray", "fungicide", "pesticide", "remove", "prune", "cut", "destroy", 
-                      "burn", "treat", "copper", "sulfur", "curative", "cure", "control", "insecticide",
-                      "chemical", "drench", "soap", "oil", "eliminate"
-                    ];
-
-                    const steps = selectedScanDetail.prevention_steps || [];
-                    steps.forEach((step: string) => {
-                      const lower = step.toLowerCase();
-                      const isTreatment = treatmentKeywords.some(keyword => lower.includes(keyword));
-                      if (isTreatment) {
-                        treatment.push(step);
-                      } else {
-                        prevention.push(step);
-                      }
-                    });
-
-                    return (
-                      <>
-                        <View style={[styles.card, { backgroundColor: theme.background, padding: 12, borderRadius: 16, marginBottom: 12 }]}>
-                          <Text style={[styles.label, { color: "#EF4444" }]}>Recommended Treatments</Text>
-                          {treatment.length > 0 ? (
-                            treatment.map((step, idx) => (
-                              <View key={idx} style={styles.bulletRow}>
-                                <View style={[styles.bulletPoint, { backgroundColor: "#EF4444", width: 4, height: 4, borderRadius: 2, marginTop: 6 }]} />
-                                <Text style={[styles.bulletText, { color: theme.textSecondary, fontSize: 13, lineHeight: 18 }]}>{step}</Text>
-                              </View>
-                            ))
-                          ) : (
-                            <Text style={[styles.text, { color: theme.textSecondary, fontSize: 13, marginTop: 4 }]}>No immediate curative treatments listed. Focus on prevention.</Text>
-                          )}
+                  <View style={styles.modalMeta}>
+                    {/* CROP & DIAGNOSIS DETAILS CARD */}
+                    <View style={[styles.modalCard, { backgroundColor: theme.background }]}>
+                      <View style={styles.modalCardHeader}>
+                        <Info size={18} color="#16A34A" />
+                        <Text style={[styles.modalCardTitle, { color: theme.text }]}>Plant Diagnostics</Text>
+                      </View>
+                      
+                      <View style={styles.modalRow}>
+                        <View style={styles.modalField}>
+                          <Text style={styles.modalFieldLabel}>Crop Type</Text>
+                          <Text style={[styles.modalFieldValue, { color: theme.text }]}>{selectedScanDetail.crop_type}</Text>
                         </View>
-
-                        <View style={[styles.card, { backgroundColor: theme.background, padding: 12, borderRadius: 16, marginBottom: 12 }]}>
-                          <Text style={[styles.label, { color: "#16A34A" }]}>Prevention Measures</Text>
-                          {prevention.length > 0 ? (
-                            prevention.map((step, idx) => (
-                              <View key={idx} style={styles.bulletRow}>
-                                <View style={[styles.bulletPoint, { backgroundColor: "#16A34A", width: 4, height: 4, borderRadius: 2, marginTop: 6 }]} />
-                                <Text style={[styles.bulletText, { color: theme.textSecondary, fontSize: 13, lineHeight: 18 }]}>{step}</Text>
-                              </View>
-                            ))
-                          ) : (
-                            <Text style={[styles.text, { color: theme.textSecondary, fontSize: 13, marginTop: 4 }]}>No prevention steps listed.</Text>
-                          )}
+                        <View style={styles.modalField}>
+                          <Text style={styles.modalFieldLabel}>Accuracy Check</Text>
+                          <Text style={[styles.modalFieldValue, { color: statusColor }]}>{selectedScanDetail.confidence}%</Text>
                         </View>
-                      </>
-                    );
-                  })()}
-                </View>
-              </ScrollView>
+                      </View>
 
-              <Pressable
-                style={styles.modalCloseBtn}
-                onPress={() => setSelectedScanDetail(null)}
-              >
-                <Text style={styles.modalCloseBtnText}>Close Details</Text>
-              </Pressable>
+                      {/* CONFIDENCE ACCURACY PROGRESS BAR */}
+                      <View style={styles.modalProgressSection}>
+                        <View style={styles.modalProgressBarWrapper}>
+                          <View style={[styles.modalProgressBar, { width: `${selectedScanDetail.confidence}%`, backgroundColor: statusColor }]} />
+                        </View>
+                        <Text style={styles.modalProgressLabel}>Model certainty rating: {selectedScanDetail.confidence}%</Text>
+                      </View>
+                    </View>
+
+                    {/* SPECIFIC DIAGNOSIS */}
+                    <View style={[styles.modalCard, { backgroundColor: theme.background }]}>
+                      <View style={styles.modalCardHeader}>
+                        <AlertTriangle size={18} color="#EF4444" />
+                        <Text style={[styles.modalCardTitle, { color: theme.text }]}>Condition Name</Text>
+                      </View>
+                      <Text style={[styles.modalFieldValue, styles.modalDiseaseName, { color: theme.text }]}>
+                        {selectedScanDetail.disease_name}
+                      </Text>
+                    </View>
+
+                    {/* CAUSE */}
+                    <View style={[styles.modalCard, { backgroundColor: theme.background }]}>
+                      <View style={styles.modalCardHeader}>
+                        <Activity size={18} color="#16A34A" />
+                        <Text style={[styles.modalCardTitle, { color: theme.text }]}>Cause of Infection</Text>
+                      </View>
+                      <Text style={[styles.modalText, { color: theme.textSecondary }]}>
+                        {selectedScanDetail.cause || "No cause details logged."}
+                      </Text>
+                    </View>
+
+                    {/* PREV & TREATMENT CATEGORIZATION */}
+                    {(() => {
+                      const prevention: string[] = [];
+                      const treatment: string[] = [];
+                      const treatmentKeywords = [
+                        "apply", "spray", "fungicide", "pesticide", "remove", "prune", "cut", "destroy", 
+                        "burn", "treat", "copper", "sulfur", "curative", "cure", "control", "insecticide",
+                        "chemical", "drench", "soap", "oil", "eliminate"
+                      ];
+
+                      const steps = selectedScanDetail.prevention_steps || [];
+                      steps.forEach((step: string) => {
+                        const lower = step.toLowerCase();
+                        const isTreatment = treatmentKeywords.some(keyword => lower.includes(keyword));
+                        if (isTreatment) {
+                          treatment.push(step);
+                        } else {
+                          prevention.push(step);
+                        }
+                      });
+
+                      return (
+                        <>
+                          {/* RECOMMENDED TREATMENTS */}
+                          <View style={[styles.modalCard, { backgroundColor: theme.background }]}>
+                            <View style={styles.modalCardHeader}>
+                              <Pill size={18} color="#EF4444" />
+                              <Text style={[styles.modalCardTitle, { color: theme.text }]}>Recommended Treatments</Text>
+                            </View>
+                            {treatment.length > 0 ? (
+                              treatment.map((step, idx) => (
+                                <View key={idx} style={styles.modalBulletRow}>
+                                  <View style={[styles.modalBulletPoint, { backgroundColor: "#EF4444" }]} />
+                                  <Text style={[styles.modalBulletText, { color: theme.textSecondary }]}>{step}</Text>
+                                </View>
+                              ))
+                            ) : (
+                              <Text style={[styles.modalText, { color: theme.textSecondary }]}>No immediate curative treatments listed. Focus on prevention.</Text>
+                            )}
+                          </View>
+
+                          {/* PREVENTION MEASURES */}
+                          <View style={[styles.modalCard, { backgroundColor: theme.background }]}>
+                            <View style={styles.modalCardHeader}>
+                              <ShieldCheck size={18} color="#16A34A" />
+                              <Text style={[styles.modalCardTitle, { color: theme.text }]}>Prevention Measures</Text>
+                            </View>
+                            {prevention.length > 0 ? (
+                              prevention.map((step, idx) => (
+                                <View key={idx} style={styles.modalBulletRow}>
+                                  <View style={[styles.modalBulletPoint, { backgroundColor: "#16A34A" }]} />
+                                  <Text style={[styles.modalBulletText, { color: theme.textSecondary }]}>{step}</Text>
+                                </View>
+                              ))
+                            ) : (
+                              <Text style={[styles.modalText, { color: theme.textSecondary }]}>No prevention steps listed.</Text>
+                            )}
+                          </View>
+                        </>
+                      );
+                    })()}
+                  </View>
+                </ScrollView>
+
+                <Pressable
+                  style={styles.modalCloseBtn}
+                  onPress={() => setSelectedScanDetail(null)}
+                >
+                  <Text style={styles.modalCloseBtnText}>Close Details</Text>
+                </Pressable>
+              </View>
             </View>
-          </View>
-        ) : null}
+          );
+        })() : null}
       </View>
     );
   }
@@ -1679,39 +1724,188 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     width: "100%",
+    maxHeight: "88%",
     borderRadius: 24,
     padding: 20,
     alignItems: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.25,
+        shadowRadius: 15,
+      },
+      android: {
+        elevation: 10,
+      },
+      web: {
+        boxShadow: "0px 10px 25px rgba(0, 0, 0, 0.25)",
+      },
+    }),
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: "bold",
     marginBottom: 15,
+    letterSpacing: -0.5,
+  },
+  modalImageFrame: {
+    width: "100%",
+    height: 200,
+    borderRadius: 20,
+    marginBottom: 16,
+    overflow: "hidden",
+    position: "relative",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 3,
+      },
+      web: {
+        boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.08)",
+      },
+    }),
   },
   modalImage: {
     width: "100%",
-    height: 180,
-    borderRadius: 16,
-    marginBottom: 15,
+    height: "100%",
+  },
+  modalStatusTag: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.15,
+        shadowRadius: 3,
+      },
+      android: {
+        elevation: 2,
+      },
+      web: {
+        boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.15)",
+      },
+    }),
+  },
+  modalStatusTagText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "bold",
+    letterSpacing: 0.5,
   },
   modalMeta: {
     width: "100%",
     gap: 6,
     marginBottom: 20,
   },
-  modalCrop: {
-    fontSize: 13,
+  modalCard: {
+    padding: 18,
+    borderRadius: 20,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0, 0, 0, 0.03)",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.02,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 2,
+      },
+      web: {
+        boxShadow: "0px 3px 8px rgba(0, 0, 0, 0.02)",
+      },
+    }),
+  },
+  modalCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 15,
+  },
+  modalCardTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.2,
+  },
+  modalRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  modalField: {
+    flex: 1,
+  },
+  modalFieldLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#888",
+    marginBottom: 4,
+    textTransform: "uppercase",
+  },
+  modalFieldValue: {
+    fontSize: 18,
     fontWeight: "bold",
   },
-  modalDisease: {
-    fontSize: 16,
-    fontWeight: "bold",
+  modalDiseaseName: {
+    fontSize: 20,
+    color: "#111",
   },
-  modalConfidence: {
-    fontSize: 13,
+  modalText: {
+    fontSize: 15,
+    lineHeight: 22,
   },
-  modalDate: {
-    fontSize: 12,
+  modalProgressSection: {
+    marginTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: "rgba(0, 0, 0, 0.05)",
+    paddingTop: 15,
+  },
+  modalProgressBarWrapper: {
+    height: 8,
+    backgroundColor: "rgba(0, 0, 0, 0.05)",
+    borderRadius: 4,
+    overflow: "hidden",
+    marginBottom: 8,
+  },
+  modalProgressBar: {
+    height: "100%",
+    borderRadius: 4,
+  },
+  modalProgressLabel: {
+    fontSize: 11,
+    color: "#888",
+    fontWeight: "600",
+  },
+  modalBulletRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    marginTop: 10,
+    paddingRight: 10,
+  },
+  modalBulletPoint: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginTop: 8,
+    marginRight: 10,
+  },
+  modalBulletText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
   },
   modalCloseBtn: {
     backgroundColor: "#16A34A",
