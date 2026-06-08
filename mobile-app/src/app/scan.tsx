@@ -214,10 +214,10 @@ export default function ScanScreen() {
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <Upload color="#fff" size={22} />
               <Text style={styles.analyzeText}>Diagnose Leaf</Text>
-            </>
+            </View>
           )}
         </Pressable>
 
