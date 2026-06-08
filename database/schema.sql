@@ -39,3 +39,28 @@ CREATE TABLE IF NOT EXISTS scans (
 CREATE INDEX IF NOT EXISTS idx_scans_user_id ON scans(user_id);
 CREATE INDEX IF NOT EXISTS idx_scans_created_at ON scans(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_treatments_crop ON treatments(crop);
+
+-- FARMS TABLE
+-- Stores custom locations and crops registered by the user.
+CREATE TABLE IF NOT EXISTS farms (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    name VARCHAR(100) NOT NULL,
+    crop_type VARCHAR(100) NOT NULL,
+    area_size VARCHAR(100) NOT NULL, -- e.g., "1.5 Acres", "500 Sqm"
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- SUPPORT TICKETS TABLE
+-- Stores user support requests submitted to the backend.
+CREATE TABLE IF NOT EXISTS support_tickets (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    subject VARCHAR(200) NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_farms_user_id ON farms(user_id);
+CREATE INDEX IF NOT EXISTS idx_support_tickets_user_id ON support_tickets(user_id);
+

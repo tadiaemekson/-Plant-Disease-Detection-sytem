@@ -15,6 +15,7 @@ import { useRouter } from "expo-router";
 import { Camera, Image as ImageIcon, Upload, RefreshCw, HelpCircle } from "lucide-react-native";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useAuth } from "@/services/authContext";
 
 export default function ScanScreen() {
   const router = useRouter();
@@ -24,6 +25,7 @@ export default function ScanScreen() {
 
   const [image, setImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
 
   // Scanning laser animation
   const scanAnim = useRef(new Animated.Value(0)).current;
@@ -103,7 +105,7 @@ export default function ScanScreen() {
       const { predictDisease } = require("@/services/api");
       const { diseases } = require("./home");
       
-      const result = await predictDisease(image);
+      const result = await predictDisease(image, user?.id);
 
       router.push({
         pathname: "/result",
