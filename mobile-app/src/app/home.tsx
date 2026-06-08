@@ -7,6 +7,7 @@ import {
   ScrollView,
   TextInput,
   StyleSheet,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import {
@@ -268,11 +269,20 @@ const styles = StyleSheet.create({
     paddingTop: 55,
     paddingHorizontal: 20,
     paddingBottom: 15,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 5,
+      },
+      android: {
+        elevation: 2,
+      },
+      web: {
+        boxShadow: "0px 2px 10px rgba(0, 0, 0, 0.05)",
+      },
+    }),
   },
   appName: {
     fontSize: 22,
@@ -310,11 +320,20 @@ const styles = StyleSheet.create({
     height: 52,
     borderRadius: 16,
     marginBottom: 25,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.02,
-    shadowRadius: 4,
-    elevation: 1,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.02,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 1,
+      },
+      web: {
+        boxShadow: "0px 2px 8px rgba(0, 0, 0, 0.02)",
+      },
+    }),
   },
   searchIcon: {
     marginRight: 10,
@@ -340,11 +359,20 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     marginRight: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.02,
-    shadowRadius: 6,
-    elevation: 1,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.02,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 1,
+      },
+      web: {
+        boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.02)",
+      },
+    }),
   },
   tipHeader: {
     flexDirection: "row",
@@ -382,13 +410,22 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 15,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
     borderWidth: 1,
     borderColor: "rgba(0, 0, 0, 0.03)",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+      },
+      android: {
+        elevation: 2,
+      },
+      web: {
+        boxShadow: "0px 2px 12px rgba(0, 0, 0, 0.04)",
+      },
+    }),
   },
   image: {
     width: "100%",
@@ -425,11 +462,20 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    elevation: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: -3 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 10,
+      },
+      web: {
+        boxShadow: "0px -3px 16px rgba(0, 0, 0, 0.05)",
+      },
+    }),
   },
   navItem: {
     flex: 1,
@@ -444,11 +490,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: -30,
-    shadowColor: "#16A34A",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#16A34A",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+      },
+      android: {
+        elevation: 6,
+      },
+      web: {
+        boxShadow: "0px 4px 16px rgba(22, 163, 74, 0.3)",
+      },
+    }),
   },
   navText: {
     fontSize: 11,
