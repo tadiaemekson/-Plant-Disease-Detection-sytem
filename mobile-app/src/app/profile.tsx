@@ -13,6 +13,7 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
+import * as ImagePicker from "expo-image-picker";
 import {
   User,
   Settings,
@@ -49,7 +50,7 @@ import {
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, loading: authLoading, login, register, logout, updateLocalUsername, setPremiumStatus } = useAuth();
+  const { user, loading: authLoading, login, register, logout, updateLocalUsername, setPremiumStatus, updateProfilePic } = useAuth();
   const colorScheme = useColorScheme();
   const scheme = (colorScheme === "dark" ? "dark" : "light") as keyof typeof Colors;
   const theme = Colors[scheme];
@@ -122,26 +123,29 @@ export default function ProfileScreen() {
   const [supportMessage, setSupportMessage] = useState("");
   const [supportActionLoading, setSupportActionLoading] = useState(false);
 
-  // Sync settings inputs when user changes
+  // Sync settings and load lists when user logs in
   useEffect(() => {
     if (user) {
       setSettingsUsername(user.username);
+      // Load initial lists for main profile and sub-sections in background
+      loadHistoryData();
+      loadFarmsData();
+    } else {
+      setHistoryList([]);
+      setFarmsList([]);
     }
   }, [user]);
 
-  // Load farms when section changes to 'farms'
+  // Support section-specific re-fetching
   useEffect(() => {
-    if (activeSection === "farms" && user) {
-      loadFarmsData();
+    if (user) {
+      if (activeSection === "farms") {
+        loadFarmsData();
+      } else if (activeSection === "history") {
+        loadHistoryData();
+      }
     }
-  }, [activeSection, user]);
-
-  // Load scan history when section changes to 'history'
-  useEffect(() => {
-    if (activeSection === "history" && user) {
-      loadHistoryData();
-    }
-  }, [activeSection, user]);
+  }, [activeSection]);
 
   const loadFarmsData = async () => {
     if (!user) return;
@@ -308,6 +312,26 @@ export default function ProfileScreen() {
       Alert.alert("Error", err.message || "Could not log support ticket.");
     } finally {
       setSupportActionLoading(false);
+    }
+  };
+
+  // --- Change Profile Picture ---
+  const handleUpdateAvatar = async () => {
+    if (!user) return;
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert("Permission Needed", "We need media library permission to let you select a profile picture.");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      quality: 0.5,
+    });
+
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const selectedUri = result.assets[0].uri;
+      updateProfilePic(selectedUri);
     }
   };
 
@@ -965,9 +989,9 @@ export default function ProfileScreen() {
 
         {/* Profile Card */}
         <View style={[styles.headerCard, { backgroundColor: theme.backgroundElement }]}>
-          <View style={styles.avatarWrapper}>
+          <Pressable style={styles.avatarWrapper} onPress={handleUpdateAvatar}>
             <Image
-              source={{
+              source={user.profilePic ? { uri: user.profilePic } : {
                 uri: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200",
               }}
               style={styles.avatar}
@@ -975,7 +999,7 @@ export default function ProfileScreen() {
             <View style={styles.cameraIcon}>
               <Camera color="#fff" size={14} />
             </View>
-          </View>
+          </Pressable>
 
           <Text style={[styles.name, { color: theme.text }]}>{user.username}</Text>
           <View style={[styles.badge, { backgroundColor: user.isPremium ? "#FDF2F8" : "rgba(22, 163, 74, 0.1)" }]}>
@@ -1042,6 +1066,71 @@ export default function ProfileScreen() {
               </Pressable>
             );
           })}
+        </View>
+
+        {/* Recent Research & Scans Section */}
+        <View style={styles.recentResearchSection}>
+          <Text style={[styles.sectionHeading, { color: theme.text }]}>Recent Research & Scans</Text>
+          {historyList.length === 0 ? (
+            <View style={[styles.recentEmptyCard, { backgroundColor: theme.backgroundElement }]}>
+              <Text style={[styles.recentEmptyText, { color: theme.textSecondary }]}>
+                No scans recorded yet. Use the Camera tab to analyze leaves.
+              </Text>
+              <Pressable
+                style={styles.recentScanBtn}
+                onPress={() => router.push("/scan")}
+              >
+                <Text style={styles.recentScanBtnText}>Analyze a Leaf</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.recentScansList}>
+              {historyList.slice(0, 3).map((scan) => {
+                const isHealthy = scan.disease_name?.toLowerCase().includes("healthy");
+                return (
+                  <Pressable
+                    key={scan.id}
+                    style={[styles.recentScanItem, { backgroundColor: theme.backgroundElement }]}
+                    onPress={() => {
+                      setActiveSection("history");
+                      setSelectedScanDetail(scan);
+                    }}
+                  >
+                    {scan.image_path ? (
+                      <Image source={{ uri: scan.image_path }} style={styles.recentScanThumb} />
+                    ) : (
+                      <View style={[styles.recentScanThumbPlace, { backgroundColor: theme.backgroundSelected }]}>
+                        <Activity color={theme.textSecondary} size={14} />
+                      </View>
+                    )}
+                    <View style={styles.recentScanInfo}>
+                      <Text style={[styles.recentScanCrop, { color: theme.text }]}>
+                        {scan.crop_type}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.recentScanDisease,
+                          { color: isHealthy ? "#16A34A" : "#DC2626" },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {scan.disease_name || "Scanning Leaf"}
+                      </Text>
+                    </View>
+                    <ChevronRight color={theme.textSecondary} size={16} />
+                  </Pressable>
+                );
+              })}
+              {historyList.length > 3 && (
+                <Pressable
+                  style={styles.viewAllHistoryLink}
+                  onPress={() => setActiveSection("history")}
+                >
+                  <Text style={styles.viewAllHistoryLinkText}>View All History ({historyList.length})</Text>
+                </Pressable>
+              )}
+            </View>
+          )}
         </View>
 
         {/* Logout */}
@@ -1754,5 +1843,88 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     marginBottom: 20,
+  },
+
+  // --- Recent Research Styles ---
+  recentResearchSection: {
+    marginTop: 25,
+    marginBottom: 15,
+  },
+  sectionHeading: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+  recentEmptyCard: {
+    padding: 20,
+    borderRadius: 20,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
+  },
+  recentEmptyText: {
+    fontSize: 13,
+    textAlign: "center",
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  recentScanBtn: {
+    backgroundColor: "#16A34A",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+  },
+  recentScanBtnText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  recentScansList: {
+    gap: 10,
+  },
+  recentScanItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.03)",
+  },
+  recentScanThumb: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    marginRight: 12,
+  },
+  recentScanThumbPlace: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
+    marginRight: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  recentScanInfo: {
+    flex: 1,
+  },
+  recentScanCrop: {
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    color: "#888",
+    marginBottom: 2,
+  },
+  recentScanDisease: {
+    fontSize: 14,
+    fontWeight: "bold",
+  },
+  viewAllHistoryLink: {
+    alignItems: "center",
+    paddingVertical: 8,
+  },
+  viewAllHistoryLinkText: {
+    color: "#16A34A",
+    fontSize: 13,
+    fontWeight: "bold",
   },
 });

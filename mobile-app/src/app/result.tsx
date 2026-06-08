@@ -9,7 +9,7 @@ import {
   Platform,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Home, Camera, User, ArrowLeft, Info, Activity, AlertTriangle, ShieldCheck } from "lucide-react-native";
+import { Home, Camera, User, ArrowLeft, Info, Activity, AlertTriangle, ShieldCheck, Pill } from "lucide-react-native";
 import { diseases } from "./home";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -149,23 +149,67 @@ export default function ResultScreen() {
           <Text style={[styles.text, { color: theme.textSecondary }]}>{causeText}</Text>
         </View>
 
-        {/* TREATMENT & PREVENTION */}
-        <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
-          <View style={styles.cardHeader}>
-            <ShieldCheck size={18} color="#16A34A" />
-            <Text style={[styles.cardTitle, { color: theme.text }]}>Prevention & Treatments</Text>
-          </View>
-          {preventionSteps.length > 0 ? (
-            preventionSteps.map((step, idx) => (
-              <View key={idx} style={styles.bulletRow}>
-                <View style={styles.bulletPoint} />
-                <Text style={[styles.bulletText, { color: theme.textSecondary }]}>{step}</Text>
+        {/* PREV & TREATMENT CATEGORIZATION */}
+        {(() => {
+          // Categorize steps
+          const prevention: string[] = [];
+          const treatment: string[] = [];
+          const treatmentKeywords = [
+            "apply", "spray", "fungicide", "pesticide", "remove", "prune", "cut", "destroy", 
+            "burn", "treat", "copper", "sulfur", "curative", "cure", "control", "insecticide",
+            "chemical", "drench", "soap", "oil", "eliminate"
+          ];
+
+          preventionSteps.forEach((step) => {
+            const lower = step.toLowerCase();
+            const isTreatment = treatmentKeywords.some(keyword => lower.includes(keyword));
+            if (isTreatment) {
+              treatment.push(step);
+            } else {
+              prevention.push(step);
+            }
+          });
+
+          return (
+            <>
+              {/* RECOMMENDED TREATMENTS */}
+              <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
+                <View style={styles.cardHeader}>
+                  <Pill size={18} color="#EF4444" />
+                  <Text style={[styles.cardTitle, { color: theme.text }]}>Recommended Treatments</Text>
+                </View>
+                {treatment.length > 0 ? (
+                  treatment.map((step, idx) => (
+                    <View key={idx} style={styles.bulletRow}>
+                      <View style={[styles.bulletPoint, { backgroundColor: "#EF4444" }]} />
+                      <Text style={[styles.bulletText, { color: theme.textSecondary }]}>{step}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={[styles.text, { color: theme.textSecondary }]}>No immediate curative treatments listed. Focus on prevention.</Text>
+                )}
               </View>
-            ))
-          ) : (
-            <Text style={[styles.text, { color: theme.textSecondary }]}>No guidelines available.</Text>
-          )}
-        </View>
+
+              {/* PREVENTION MEASURES */}
+              <View style={[styles.card, { backgroundColor: theme.backgroundElement }]}>
+                <View style={styles.cardHeader}>
+                  <ShieldCheck size={18} color="#16A34A" />
+                  <Text style={[styles.cardTitle, { color: theme.text }]}>Prevention Measures</Text>
+                </View>
+                {prevention.length > 0 ? (
+                  prevention.map((step, idx) => (
+                    <View key={idx} style={styles.bulletRow}>
+                      <View style={[styles.bulletPoint, { backgroundColor: "#16A34A" }]} />
+                      <Text style={[styles.bulletText, { color: theme.textSecondary }]}>{step}</Text>
+                    </View>
+                  ))
+                ) : (
+                  <Text style={[styles.text, { color: theme.textSecondary }]}>No prevention steps listed.</Text>
+                )}
+              </View>
+            </>
+          );
+        })()}
 
         {/* SCAN ANOTHER CONTROL */}
         <Pressable

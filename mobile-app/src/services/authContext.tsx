@@ -6,6 +6,7 @@ export interface UserSession {
   username: string;
   email: string;
   isPremium?: boolean;
+  profilePic?: string;
 }
 
 interface AuthContextType {
@@ -16,6 +17,7 @@ interface AuthContextType {
   logout: () => void;
   updateLocalUsername: (username: string) => void;
   setPremiumStatus: (status: boolean) => void;
+  updateProfilePic: (uri: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -82,13 +84,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isPremium: false // Default to free on first login or load from DB if stored, we toggle it locally
       };
       
-      // Preserve isPremium if we already upgraded this user locally
+      // Preserve isPremium and profilePic if we already upgraded this user locally
       const storedUser = storage.getItem(STORAGE_KEY);
       if (storedUser) {
         try {
           const parsed = JSON.parse(storedUser);
           if (parsed && parsed.id === sessionUser.id) {
             sessionUser.isPremium = !!parsed.isPremium;
+            sessionUser.profilePic = parsed.profilePic;
           }
         } catch (_) {}
       }
@@ -137,6 +140,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const updateProfilePic = (uri: string) => {
+    if (user) {
+      const updatedUser = { ...user, profilePic: uri };
+      setUser(updatedUser);
+      storage.setItem(STORAGE_KEY, JSON.stringify(updatedUser));
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -146,7 +157,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         register,
         logout,
         updateLocalUsername,
-        setPremiumStatus
+        setPremiumStatus,
+        updateProfilePic
       }}
     >
       {children}

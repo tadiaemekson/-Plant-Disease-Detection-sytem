@@ -21,7 +21,7 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 app.config["MAX_CONTENT_LENGTH"] = 16 * 1024 * 1024
 
 # -------------------------------------------------------------
-# Database Configuration & Connection (Dual Postgres / SQLite)
+# Database Configuration & Connection (Dual Postgres / MySQL)
 # -------------------------------------------------------------
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_PORT = os.environ.get("DB_PORT", "5432")
@@ -30,19 +30,45 @@ DB_USER = os.environ.get("DB_USER", "postgres")
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "postgres")
 
 db_connection = None
-USE_SQLITE = False
-SQLITE_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), '../database/plant_disease.db'))
+USE_MYSQL = False
+
+MYSQL_HOST = os.environ.get("MYSQL_HOST", "localhost")
+MYSQL_PORT = int(os.environ.get("MYSQL_PORT", "3306"))
+MYSQL_USER = os.environ.get("MYSQL_USER", "root")
+MYSQL_PASSWORD = os.environ.get("MYSQL_PASSWORD", "")
+MYSQL_DB = os.environ.get("MYSQL_DB", "plant_disease")
 
 def get_db_connection():
-    global db_connection, USE_SQLITE
+    global db_connection, USE_MYSQL
     
-    if USE_SQLITE:
+    if USE_MYSQL:
         try:
-            conn = sqlite3.connect(SQLITE_DB_PATH)
-            conn.row_factory = sqlite3.Row
+            import pymysql
+            # Connect to server to verify/create database
+            conn = pymysql.connect(
+                host=MYSQL_HOST,
+                port=MYSQL_PORT,
+                user=MYSQL_USER,
+                password=MYSQL_PASSWORD,
+                autocommit=True
+            )
+            with conn.cursor() as cur:
+                cur.execute(f"CREATE DATABASE IF NOT EXISTS {MYSQL_DB};")
+            conn.close()
+            
+            # Connect to actual database
+            conn = pymysql.connect(
+                host=MYSQL_HOST,
+                port=MYSQL_PORT,
+                user=MYSQL_USER,
+                password=MYSQL_PASSWORD,
+                database=MYSQL_DB,
+                cursorclass=pymysql.cursors.DictCursor,
+                autocommit=True
+            )
             return conn
         except Exception as e:
-            print(f"[SQLite Error] Could not connect to SQLite: {e}")
+            print(f"[MySQL Error] Could not connect to MySQL: {e}")
             return None
             
     # Try PostgreSQL connection
@@ -60,15 +86,33 @@ def get_db_connection():
         return db_connection
     except Exception as e:
         print(f"[DB Warning] Could not connect to PostgreSQL: {e}")
-        print("[DB] Falling back to SQLite local database.")
-        USE_SQLITE = True
-        os.makedirs(os.path.dirname(SQLITE_DB_PATH), exist_ok=True)
+        print("[DB] Falling back to MySQL local database.")
+        USE_MYSQL = True
         try:
-            conn = sqlite3.connect(SQLITE_DB_PATH)
-            conn.row_factory = sqlite3.Row
+            import pymysql
+            conn = pymysql.connect(
+                host=MYSQL_HOST,
+                port=MYSQL_PORT,
+                user=MYSQL_USER,
+                password=MYSQL_PASSWORD,
+                autocommit=True
+            )
+            with conn.cursor() as cur:
+                cur.execute(f"CREATE DATABASE IF NOT EXISTS {MYSQL_DB};")
+            conn.close()
+            
+            conn = pymysql.connect(
+                host=MYSQL_HOST,
+                port=MYSQL_PORT,
+                user=MYSQL_USER,
+                password=MYSQL_PASSWORD,
+                database=MYSQL_DB,
+                cursorclass=pymysql.cursors.DictCursor,
+                autocommit=True
+            )
             return conn
         except Exception as se:
-            print(f"[SQLite Error] Could not connect to SQLite: {se}")
+            print(f"[MySQL Error] Could not connect to MySQL: {se}")
             return None
 
 # -------------------------------------------------------------
@@ -116,22 +160,22 @@ def parse_prevention_html(raw_html):
 def init_db_and_seed():
     """
     Initializes database tables and seeds the treatments table.
-    Works for both PostgreSQL and SQLite fallback.
+    Works for both PostgreSQL and MySQL fallback.
     """
     conn = get_db_connection()
     if conn is None:
-        print("[DB Error] Could not initialize database database. Fallback to offline dict.")
+        print("[DB Error] Could not initialize database. Fallback to offline dict.")
         return
         
     try:
-        if USE_SQLITE:
-            # SQLite Table Initialization
+        if USE_MYSQL:
+            # MySQL Table Initialization
             cur = conn.cursor()
             cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id VARCHAR(36) PRIMARY KEY,
                 username VARCHAR(100) NOT NULL,
-                email VARCHAR(255) UNIQUE NOT NULL,
+                email VARCHAR(191) UNIQUE NOT NULL,
                 password_hash VARCHAR(255) NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
@@ -149,49 +193,53 @@ def init_db_and_seed():
             cur.execute("""
             CREATE TABLE IF NOT EXISTS scans (
                 id VARCHAR(36) PRIMARY KEY,
-                user_id VARCHAR(36) REFERENCES users(id),
+                user_id VARCHAR(36),
                 image_path VARCHAR(500) NOT NULL,
                 crop_type VARCHAR(100) NOT NULL,
-                predicted_disease VARCHAR(100) REFERENCES treatments(disease_key),
+                predicted_disease VARCHAR(100),
                 confidence NUMERIC(5, 2) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
+                FOREIGN KEY (predicted_disease) REFERENCES treatments(disease_key)
             );
             """)
             cur.execute("""
             CREATE TABLE IF NOT EXISTS farms (
                 id VARCHAR(36) PRIMARY KEY,
-                user_id VARCHAR(36) REFERENCES users(id) ON DELETE CASCADE,
+                user_id VARCHAR(36),
                 name VARCHAR(100) NOT NULL,
                 crop_type VARCHAR(100) NOT NULL,
                 area_size VARCHAR(100) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
             """)
             cur.execute("""
             CREATE TABLE IF NOT EXISTS support_tickets (
                 id VARCHAR(36) PRIMARY KEY,
-                user_id VARCHAR(36) REFERENCES users(id) ON DELETE SET NULL,
+                user_id VARCHAR(36),
                 subject VARCHAR(200) NOT NULL,
                 message TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
             );
             """)
             
             # Check Seeding
             cur.execute("SELECT COUNT(*) FROM treatments;")
-            count = cur.fetchone()[0]
+            row = cur.fetchone()
+            count = list(row.values())[0] if isinstance(row, dict) else row[0]
             if count == 0:
-                print("[SQLite] Seeding treatments from local dictionary...")
+                print("[MySQL] Seeding treatments from local dictionary...")
                 for key, raw_html in utils.disease_dic.items():
                     crop, disease_name, cause, prevention_steps = parse_prevention_html(raw_html)
                     cur.execute("""
                         INSERT INTO treatments (disease_key, crop, disease_name, cause, prevention_steps)
-                        VALUES (?, ?, ?, ?, ?);
+                        VALUES (%s, %s, %s, %s, %s);
                     """, (key, crop, disease_name, cause, json.dumps(prevention_steps)))
-                conn.commit()
-                print(f"[SQLite] Seeding completed: {len(utils.disease_dic)} items.")
+                print(f"[MySQL] Seeding completed: {len(utils.disease_dic)} items.")
             else:
-                print(f"[SQLite] Local database already initialized ({count} treatments).")
+                print(f"[MySQL] Local database already initialized ({count} treatments).")
             conn.close()
         else:
             # PostgreSQL Table Initialization
@@ -265,7 +313,7 @@ def init_db_and_seed():
                     
     except Exception as e:
         print(f"[DB Error] Failed to initialize/seed database: {e}")
-        if conn and not USE_SQLITE:
+        if conn and not USE_MYSQL:
             conn.rollback()
 
 # Run database setup on startup
@@ -287,8 +335,8 @@ def health():
     if conn is None:
         db_status = "offline"
     else:
-        db_status = f"connected ({'SQLite' if USE_SQLITE else 'PostgreSQL'})"
-        if USE_SQLITE:
+        db_status = f"connected ({'MySQL' if USE_MYSQL else 'PostgreSQL'})"
+        if USE_MYSQL:
             conn.close()
             
     return jsonify({
@@ -338,12 +386,12 @@ def predict():
         
         if conn is not None:
             try:
-                if USE_SQLITE:
+                if USE_MYSQL:
                     cur = conn.cursor()
                     cur.execute("""
                         SELECT crop, disease_name, cause, prevention_steps 
                         FROM treatments 
-                        WHERE disease_key = ?;
+                        WHERE disease_key = %s;
                     """, (prediction_key,))
                     row = cur.fetchone()
                     if row:
@@ -356,13 +404,12 @@ def predict():
                         if raw_html:
                             crop, disease_name, cause, prevention_steps = parse_prevention_html(raw_html)
                             
-                    # Log scan to SQLite
+                    # Log scan to MySQL
                     scan_uuid = str(uuid.uuid4())
                     cur.execute("""
                         INSERT INTO scans (id, user_id, image_path, crop_type, predicted_disease, confidence)
-                        VALUES (?, ?, ?, ?, ?, ?);
+                        VALUES (%s, %s, %s, %s, %s, %s);
                     """, (scan_uuid, user_id, relative_path, crop, prediction_key, confidence))
-                    conn.commit()
                     db_saved = True
                     conn.close()
                 else:
@@ -394,7 +441,7 @@ def predict():
                         db_saved = True
             except Exception as e:
                 print(f"[DB Error] Failed to log scan / fetch treatments: {e}")
-                if not USE_SQLITE:
+                if not USE_MYSQL:
                     conn.rollback()
 
         # Fallback to local dict parsing if DB is disconnected
@@ -414,7 +461,7 @@ def predict():
             "prevention": prevention_steps,
             "image_url": relative_path,
             "logged_to_db": db_saved,
-            "db_type": "SQLite" if USE_SQLITE else "PostgreSQL"
+            "db_type": "MySQL" if USE_MYSQL else "PostgreSQL"
         })
 
     except Exception as e:
@@ -436,7 +483,7 @@ def get_scans():
         
     try:
         scans_list = []
-        if USE_SQLITE:
+        if USE_MYSQL:
             cur = conn.cursor()
             if user_id:
                 cur.execute("""
@@ -444,7 +491,7 @@ def get_scans():
                            s.confidence, s.created_at, t.disease_name
                     FROM scans s
                     LEFT JOIN treatments t ON s.predicted_disease = t.disease_key
-                    WHERE s.user_id = ?
+                    WHERE s.user_id = %s
                     ORDER BY s.created_at DESC;
                 """, (user_id,))
             else:
@@ -523,19 +570,19 @@ def register():
             return jsonify({"error": "Database is not connected. Registration failed."}), 503
             
         try:
-            if USE_SQLITE:
+            if USE_MYSQL:
                 cur = conn.cursor()
                 # Check if email exists
-                cur.execute("SELECT id FROM users WHERE email = ?;", (email,))
-                if cur.fetchone():
+                cur.execute("SELECT id FROM users WHERE email = %s;", (email,))
+                row = cur.fetchone()
+                if row:
                     conn.close()
                     return jsonify({"error": "Email is already registered."}), 409
                     
                 cur.execute("""
                     INSERT INTO users (id, username, email, password_hash)
-                    VALUES (?, ?, ?, ?);
+                    VALUES (%s, %s, %s, %s);
                 """, (user_uuid, username, email, password_hash))
-                conn.commit()
                 conn.close()
             else:
                 with conn.cursor() as cur:
@@ -549,7 +596,7 @@ def register():
                     """, (user_uuid, username, email, password_hash))
                     conn.commit()
         except Exception as db_err:
-            if not USE_SQLITE:
+            if not USE_MYSQL:
                 conn.rollback()
             return jsonify({"error": f"Database error during registration: {db_err}"}), 500
             
@@ -582,10 +629,10 @@ def login():
             
         user_data = None
         try:
-            if USE_SQLITE:
+            if USE_MYSQL:
                 cur = conn.cursor()
                 cur.execute("""
-                    SELECT id, username, email, password_hash FROM users WHERE email = ?;
+                    SELECT id, username, email, password_hash FROM users WHERE email = %s;
                 """, (email,))
                 row = cur.fetchone()
                 if row and row['password_hash'] == password_hash:
@@ -636,14 +683,13 @@ def update_settings():
             return jsonify({"error": "Database is not connected."}), 503
             
         try:
-            if USE_SQLITE:
+            if USE_MYSQL:
                 cur = conn.cursor()
                 if username:
-                    cur.execute("UPDATE users SET username = ? WHERE id = ?;", (username, user_id))
+                    cur.execute("UPDATE users SET username = %s WHERE id = %s;", (username, user_id))
                 if password:
                     password_hash = hash_password(password)
-                    cur.execute("UPDATE users SET password_hash = ? WHERE id = ?;", (password_hash, user_id))
-                conn.commit()
+                    cur.execute("UPDATE users SET password_hash = %s WHERE id = %s;", (password_hash, user_id))
                 conn.close()
             else:
                 with conn.cursor() as cur:
@@ -654,7 +700,7 @@ def update_settings():
                         cur.execute("UPDATE users SET password_hash = %s WHERE id = %s;", (password_hash, user_id))
                     conn.commit()
         except Exception as db_err:
-            if not USE_SQLITE:
+            if not USE_MYSQL:
                 conn.rollback()
             return jsonify({"error": f"Database error: {db_err}"}), 500
             
@@ -678,12 +724,12 @@ def get_farms():
             
         farms_list = []
         try:
-            if USE_SQLITE:
+            if USE_MYSQL:
                 cur = conn.cursor()
                 cur.execute("""
                     SELECT id, name, crop_type, area_size, created_at 
                     FROM farms 
-                    WHERE user_id = ?
+                    WHERE user_id = %s
                     ORDER BY created_at DESC;
                 """, (user_id,))
                 rows = cur.fetchall()
@@ -741,13 +787,12 @@ def add_farm():
             return jsonify({"error": "Database is not connected."}), 503
             
         try:
-            if USE_SQLITE:
+            if USE_MYSQL:
                 cur = conn.cursor()
                 cur.execute("""
                     INSERT INTO farms (id, user_id, name, crop_type, area_size)
-                    VALUES (?, ?, ?, ?, ?);
+                    VALUES (%s, %s, %s, %s, %s);
                 """, (farm_uuid, user_id, name, crop_type, area_size))
-                conn.commit()
                 conn.close()
             else:
                 with conn.cursor() as cur:
@@ -757,7 +802,7 @@ def add_farm():
                     """, (farm_uuid, user_id, name, crop_type, area_size))
                     conn.commit()
         except Exception as db_err:
-            if not USE_SQLITE:
+            if not USE_MYSQL:
                 conn.rollback()
             return jsonify({"error": f"Database error creating farm: {db_err}"}), 500
             
@@ -781,17 +826,16 @@ def delete_farm(farm_id):
             return jsonify({"error": "Database is not connected."}), 503
             
         try:
-            if USE_SQLITE:
+            if USE_MYSQL:
                 cur = conn.cursor()
-                cur.execute("DELETE FROM farms WHERE id = ?;", (farm_id,))
-                conn.commit()
+                cur.execute("DELETE FROM farms WHERE id = %s;", (farm_id,))
                 conn.close()
             else:
                 with conn.cursor() as cur:
                     cur.execute("DELETE FROM farms WHERE id = %s;", (farm_id,))
                     conn.commit()
         except Exception as db_err:
-            if not USE_SQLITE:
+            if not USE_MYSQL:
                 conn.rollback()
             return jsonify({"error": f"Database error deleting farm: {db_err}"}), 500
             
@@ -820,13 +864,12 @@ def create_support_ticket():
             return jsonify({"error": "Database is not connected."}), 503
             
         try:
-            if USE_SQLITE:
+            if USE_MYSQL:
                 cur = conn.cursor()
                 cur.execute("""
                     INSERT INTO support_tickets (id, user_id, subject, message)
-                    VALUES (?, ?, ?, ?);
+                    VALUES (%s, %s, %s, %s);
                 """, (ticket_uuid, user_id, subject, message))
-                conn.commit()
                 conn.close()
             else:
                 with conn.cursor() as cur:
@@ -836,7 +879,7 @@ def create_support_ticket():
                     """, (ticket_uuid, user_id, subject, message))
                     conn.commit()
         except Exception as db_err:
-            if not USE_SQLITE:
+            if not USE_MYSQL:
                 conn.rollback()
             return jsonify({"error": f"Database error submitting ticket: {db_err}"}), 500
             

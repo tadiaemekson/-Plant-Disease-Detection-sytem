@@ -1,4 +1,6 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
+import * as Device from 'expo-device';
 
 const API_HOST = process.env.EXPO_PUBLIC_API_HOST || '192.168.1.132';
 const API_PORT = process.env.EXPO_PUBLIC_API_PORT || '5000';
@@ -9,11 +11,22 @@ const getBaseUrl = () => {
     return `http://${hostname}:5000`;
   }
 
-  if (Platform.OS === 'android') {
-    return 'http://10.0.2.2:5000';
+  // Detect Metro host IP dynamically from Expo Constants
+  const hostUri = Constants.expoConfig?.hostUri; // e.g. "192.168.1.132:8081"
+  let metroIp = '';
+  if (hostUri) {
+    metroIp = hostUri.split(':')[0];
   }
 
-  return `http://${API_HOST}:${API_PORT}`;
+  // Determine fallback IP based on platform and emulator/device status
+  const isEmulator = !Device.isDevice;
+  const fallbackHost = (Platform.OS === 'android' && isEmulator) 
+    ? '10.0.2.2' 
+    : (API_HOST || '192.168.1.132');
+
+  const finalHost = metroIp || fallbackHost;
+
+  return `http://${finalHost}:${API_PORT}`;
 };
 
 export const BASE_URL = getBaseUrl();
@@ -61,9 +74,6 @@ const createMultipartBody = async (imageUri, userId?: string) => {
 
 // --- Predict Disease ---
 export const predictDisease = async (imageUri: string, userId?: string) => {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
   try {
     const formData = await createMultipartBody(imageUri, userId);
 
@@ -74,19 +84,62 @@ export const predictDisease = async (imageUri: string, userId?: string) => {
       userId,
     });
 
-    const response = await fetch(PREDICT_ENDPOINT, {
-      method: 'POST',
-      body: formData,
-      signal: controller.signal,
-    });
+    let responseStatus = 0;
+    let responseText = '';
+    let responseOk = false;
 
-    clearTimeout(timeoutId);
+    if (Platform.OS === 'web') {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+      try {
+        const response = await fetch(PREDICT_ENDPOINT, {
+          method: 'POST',
+          body: formData,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        responseStatus = response.status;
+        responseText = await response.text();
+        responseOk = response.ok;
+      } catch (err) {
+        clearTimeout(timeoutId);
+        throw err;
+      }
+    } else {
+      // Native workaround: use XMLHttpRequest to bypass React Native 0.85+ fetch bug
+      const xhrResult = await new Promise<{ ok: boolean; status: number; text: string }>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', PREDICT_ENDPOINT);
+        xhr.timeout = TIMEOUT_MS;
 
-    const responseText = await response.text();
-    console.log('[API] Response status', response.status);
+        xhr.onload = () => {
+          resolve({
+            ok: xhr.status >= 200 && xhr.status < 300,
+            status: xhr.status,
+            text: xhr.responseText,
+          });
+        };
 
-    if (!response.ok) {
-      let errorMessage = `Server error: ${response.status}`;
+        xhr.onerror = () => {
+          reject(new Error('Network request failed'));
+        };
+
+        xhr.ontimeout = () => {
+          reject(new Error('Request timed out. Check your backend server and network connection.'));
+        };
+
+        xhr.send(formData as any);
+      });
+
+      responseStatus = xhrResult.status;
+      responseText = xhrResult.text;
+      responseOk = xhrResult.ok;
+    }
+
+    console.log('[API] Response status', responseStatus);
+
+    if (!responseOk) {
+      let errorMessage = `Server error: ${responseStatus}`;
       try {
         const errorData = JSON.parse(responseText);
         errorMessage = errorData.error || errorData.message || errorMessage;
@@ -115,11 +168,10 @@ export const predictDisease = async (imageUri: string, userId?: string) => {
       imageUrl: data.image_url ? `${BASE_URL}/${data.image_url}` : null,
     };
   } catch (error) {
-    clearTimeout(timeoutId);
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('[API] Prediction request failed', { error: message });
 
-    if (error.name === 'AbortError') {
+    if (error instanceof Error && error.name === 'AbortError') {
       throw new Error('Request timed out. Check your backend server and network connection.');
     }
     if (message.includes('Network request failed') || message.includes('Failed to fetch')) {
