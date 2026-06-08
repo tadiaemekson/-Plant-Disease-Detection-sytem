@@ -488,7 +488,7 @@ def get_scans():
             if user_id:
                 cur.execute("""
                     SELECT s.id, s.image_path, s.crop_type, s.predicted_disease, 
-                           s.confidence, s.created_at, t.disease_name
+                           s.confidence, s.created_at, t.disease_name, t.cause, t.prevention_steps
                     FROM scans s
                     LEFT JOIN treatments t ON s.predicted_disease = t.disease_key
                     WHERE s.user_id = %s
@@ -497,7 +497,7 @@ def get_scans():
             else:
                 cur.execute("""
                     SELECT s.id, s.image_path, s.crop_type, s.predicted_disease, 
-                           s.confidence, s.created_at, t.disease_name
+                           s.confidence, s.created_at, t.disease_name, t.cause, t.prevention_steps
                     FROM scans s
                     LEFT JOIN treatments t ON s.predicted_disease = t.disease_key
                     ORDER BY s.created_at DESC
@@ -512,7 +512,9 @@ def get_scans():
                     "predicted_disease": r["predicted_disease"],
                     "confidence": float(r["confidence"]),
                     "created_at": r["created_at"],
-                    "disease_name": r["disease_name"]
+                    "disease_name": r["disease_name"],
+                    "cause": r["cause"] or "Cause details not logged.",
+                    "prevention_steps": json.loads(r["prevention_steps"]) if r["prevention_steps"] else []
                 })
             conn.close()
         else:
@@ -520,7 +522,7 @@ def get_scans():
                 if user_id:
                     cur.execute("""
                         SELECT s.id, s.image_path, s.crop_type, s.predicted_disease, 
-                               s.confidence, s.created_at, t.disease_name
+                               s.confidence, s.created_at, t.disease_name, t.cause, t.prevention_steps
                         FROM scans s
                         LEFT JOIN treatments t ON s.predicted_disease = t.disease_key
                         WHERE s.user_id = %s
@@ -529,7 +531,7 @@ def get_scans():
                 else:
                     cur.execute("""
                         SELECT s.id, s.image_path, s.crop_type, s.predicted_disease, 
-                               s.confidence, s.created_at, t.disease_name
+                               s.confidence, s.created_at, t.disease_name, t.cause, t.prevention_steps
                         FROM scans s
                         LEFT JOIN treatments t ON s.predicted_disease = t.disease_key
                         ORDER BY s.created_at DESC

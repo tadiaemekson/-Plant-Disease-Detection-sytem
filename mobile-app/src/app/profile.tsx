@@ -675,33 +675,97 @@ export default function ProfileScreen() {
             <View style={[styles.modalContent, { backgroundColor: theme.backgroundElement }]}>
               <Text style={[styles.modalTitle, { color: theme.text }]}>Historical Diagnosis</Text>
 
-              {selectedScanDetail.image_path ? (
-                <Image source={{ uri: selectedScanDetail.image_path }} style={styles.modalImage} />
-              ) : null}
+              <ScrollView style={{ width: "100%", marginBottom: 15 }} showsVerticalScrollIndicator={false}>
+                {selectedScanDetail.image_path ? (
+                  <Image source={{ uri: selectedScanDetail.image_path }} style={styles.modalImage} />
+                ) : null}
 
-              <View style={styles.modalMeta}>
-                <Text style={[styles.modalCrop, { color: theme.textSecondary }]}>
-                  Crop: {selectedScanDetail.crop_type}
-                </Text>
-                <Text
-                  style={[
-                    styles.modalDisease,
-                    {
-                      color: selectedScanDetail.disease_name?.toLowerCase().includes("healthy")
-                        ? "#16A34A"
-                        : "#DC2626",
-                    },
-                  ]}
-                >
-                  {selectedScanDetail.disease_name}
-                </Text>
-                <Text style={[styles.modalConfidence, { color: theme.textSecondary }]}>
-                  Confidence Level: {selectedScanDetail.confidence}%
-                </Text>
-                <Text style={[styles.modalDate, { color: theme.textSecondary }]}>
-                  Scanned Date: {new Date(selectedScanDetail.created_at).toLocaleString()}
-                </Text>
-              </View>
+                <View style={styles.modalMeta}>
+                  {/* CROP & DIAGNOSIS DETAILS */}
+                  <View style={[styles.card, { backgroundColor: theme.background, padding: 12, borderRadius: 16, marginBottom: 12 }]}>
+                    <Text style={styles.label}>Plant Diagnostics</Text>
+                    <Text style={[styles.modalCrop, { color: theme.textSecondary, marginTop: 4 }]}>
+                      Crop Type: <Text style={{ color: theme.text, fontWeight: "bold" }}>{selectedScanDetail.crop_type}</Text>
+                    </Text>
+                    <Text style={[styles.modalConfidence, { color: theme.textSecondary, marginTop: 4 }]}>
+                      Accuracy: <Text style={{ color: theme.text, fontWeight: "bold" }}>{selectedScanDetail.confidence}%</Text>
+                    </Text>
+                    <Text style={[styles.modalDate, { color: theme.textSecondary, marginTop: 4 }]}>
+                      Scanned: <Text style={{ color: theme.text, fontWeight: "bold" }}>{new Date(selectedScanDetail.created_at).toLocaleString()}</Text>
+                    </Text>
+                  </View>
+
+                  {/* CONDITION NAME */}
+                  <View style={[styles.card, { backgroundColor: theme.background, padding: 12, borderRadius: 16, marginBottom: 12 }]}>
+                    <Text style={styles.label}>Condition Name</Text>
+                    <Text style={[styles.modalDisease, { color: selectedScanDetail.disease_name?.toLowerCase().includes("healthy") ? "#16A34A" : "#DC2626", marginTop: 4 }]}>
+                      {selectedScanDetail.disease_name}
+                    </Text>
+                  </View>
+
+                  {/* CAUSE */}
+                  <View style={[styles.card, { backgroundColor: theme.background, padding: 12, borderRadius: 16, marginBottom: 12 }]}>
+                    <Text style={styles.label}>Cause of Infection</Text>
+                    <Text style={[styles.text, { color: theme.textSecondary, fontSize: 13, marginTop: 4, lineHeight: 18 }]}>
+                      {selectedScanDetail.cause || "No cause details logged."}
+                    </Text>
+                  </View>
+
+                  {/* TREATMENT & PREVENTION */}
+                  {(() => {
+                    const prevention: string[] = [];
+                    const treatment: string[] = [];
+                    const treatmentKeywords = [
+                      "apply", "spray", "fungicide", "pesticide", "remove", "prune", "cut", "destroy", 
+                      "burn", "treat", "copper", "sulfur", "curative", "cure", "control", "insecticide",
+                      "chemical", "drench", "soap", "oil", "eliminate"
+                    ];
+
+                    const steps = selectedScanDetail.prevention_steps || [];
+                    steps.forEach((step: string) => {
+                      const lower = step.toLowerCase();
+                      const isTreatment = treatmentKeywords.some(keyword => lower.includes(keyword));
+                      if (isTreatment) {
+                        treatment.push(step);
+                      } else {
+                        prevention.push(step);
+                      }
+                    });
+
+                    return (
+                      <>
+                        <View style={[styles.card, { backgroundColor: theme.background, padding: 12, borderRadius: 16, marginBottom: 12 }]}>
+                          <Text style={[styles.label, { color: "#EF4444" }]}>Recommended Treatments</Text>
+                          {treatment.length > 0 ? (
+                            treatment.map((step, idx) => (
+                              <View key={idx} style={styles.bulletRow}>
+                                <View style={[styles.bulletPoint, { backgroundColor: "#EF4444", width: 4, height: 4, borderRadius: 2, marginTop: 6 }]} />
+                                <Text style={[styles.bulletText, { color: theme.textSecondary, fontSize: 13, lineHeight: 18 }]}>{step}</Text>
+                              </View>
+                            ))
+                          ) : (
+                            <Text style={[styles.text, { color: theme.textSecondary, fontSize: 13, marginTop: 4 }]}>No immediate curative treatments listed. Focus on prevention.</Text>
+                          )}
+                        </View>
+
+                        <View style={[styles.card, { backgroundColor: theme.background, padding: 12, borderRadius: 16, marginBottom: 12 }]}>
+                          <Text style={[styles.label, { color: "#16A34A" }]}>Prevention Measures</Text>
+                          {prevention.length > 0 ? (
+                            prevention.map((step, idx) => (
+                              <View key={idx} style={styles.bulletRow}>
+                                <View style={[styles.bulletPoint, { backgroundColor: "#16A34A", width: 4, height: 4, borderRadius: 2, marginTop: 6 }]} />
+                                <Text style={[styles.bulletText, { color: theme.textSecondary, fontSize: 13, lineHeight: 18 }]}>{step}</Text>
+                              </View>
+                            ))
+                          ) : (
+                            <Text style={[styles.text, { color: theme.textSecondary, fontSize: 13, marginTop: 4 }]}>No prevention steps listed.</Text>
+                          )}
+                        </View>
+                      </>
+                    );
+                  })()}
+                </View>
+              </ScrollView>
 
               <Pressable
                 style={styles.modalCloseBtn}
@@ -1066,71 +1130,6 @@ export default function ProfileScreen() {
               </Pressable>
             );
           })}
-        </View>
-
-        {/* Recent Research & Scans Section */}
-        <View style={styles.recentResearchSection}>
-          <Text style={[styles.sectionHeading, { color: theme.text }]}>Recent Research & Scans</Text>
-          {historyList.length === 0 ? (
-            <View style={[styles.recentEmptyCard, { backgroundColor: theme.backgroundElement }]}>
-              <Text style={[styles.recentEmptyText, { color: theme.textSecondary }]}>
-                No scans recorded yet. Use the Camera tab to analyze leaves.
-              </Text>
-              <Pressable
-                style={styles.recentScanBtn}
-                onPress={() => router.push("/scan")}
-              >
-                <Text style={styles.recentScanBtnText}>Analyze a Leaf</Text>
-              </Pressable>
-            </View>
-          ) : (
-            <View style={styles.recentScansList}>
-              {historyList.slice(0, 3).map((scan) => {
-                const isHealthy = scan.disease_name?.toLowerCase().includes("healthy");
-                return (
-                  <Pressable
-                    key={scan.id}
-                    style={[styles.recentScanItem, { backgroundColor: theme.backgroundElement }]}
-                    onPress={() => {
-                      setActiveSection("history");
-                      setSelectedScanDetail(scan);
-                    }}
-                  >
-                    {scan.image_path ? (
-                      <Image source={{ uri: scan.image_path }} style={styles.recentScanThumb} />
-                    ) : (
-                      <View style={[styles.recentScanThumbPlace, { backgroundColor: theme.backgroundSelected }]}>
-                        <Activity color={theme.textSecondary} size={14} />
-                      </View>
-                    )}
-                    <View style={styles.recentScanInfo}>
-                      <Text style={[styles.recentScanCrop, { color: theme.text }]}>
-                        {scan.crop_type}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.recentScanDisease,
-                          { color: isHealthy ? "#16A34A" : "#DC2626" },
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {scan.disease_name || "Scanning Leaf"}
-                      </Text>
-                    </View>
-                    <ChevronRight color={theme.textSecondary} size={16} />
-                  </Pressable>
-                );
-              })}
-              {historyList.length > 3 && (
-                <Pressable
-                  style={styles.viewAllHistoryLink}
-                  onPress={() => setActiveSection("history")}
-                >
-                  <Text style={styles.viewAllHistoryLinkText}>View All History ({historyList.length})</Text>
-                </Pressable>
-              )}
-            </View>
-          )}
         </View>
 
         {/* Logout */}
@@ -1843,88 +1842,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     marginBottom: 20,
-  },
-
-  // --- Recent Research Styles ---
-  recentResearchSection: {
-    marginTop: 25,
-    marginBottom: 15,
-  },
-  sectionHeading: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 12,
-  },
-  recentEmptyCard: {
-    padding: 20,
-    borderRadius: 20,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
-  },
-  recentEmptyText: {
-    fontSize: 13,
-    textAlign: "center",
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  recentScanBtn: {
-    backgroundColor: "#16A34A",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-  },
-  recentScanBtnText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "bold",
-  },
-  recentScansList: {
-    gap: 10,
-  },
-  recentScanItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: "rgba(0,0,0,0.03)",
-  },
-  recentScanThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    marginRight: 12,
-  },
-  recentScanThumbPlace: {
-    width: 44,
-    height: 44,
-    borderRadius: 10,
-    marginRight: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  recentScanInfo: {
-    flex: 1,
-  },
-  recentScanCrop: {
-    fontSize: 10,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    color: "#888",
-    marginBottom: 2,
-  },
-  recentScanDisease: {
-    fontSize: 14,
-    fontWeight: "bold",
-  },
-  viewAllHistoryLink: {
-    alignItems: "center",
-    paddingVertical: 8,
-  },
-  viewAllHistoryLinkText: {
-    color: "#16A34A",
-    fontSize: 13,
-    fontWeight: "bold",
   },
 });
