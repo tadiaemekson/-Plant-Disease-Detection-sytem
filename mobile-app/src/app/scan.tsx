@@ -122,39 +122,48 @@ export default function ScanScreen() {
         },
       });
 
-    } catch (e) {
-      console.log('[Scan] Server prediction failed, prompt demo mode:', e);
-      const { diseases } = require("./home");
-      
-      Alert.alert(
-        "Connection Offline",
-        "Could not connect to the AgroScan server. Would you like to run in offline Demo Mode?",
-        [
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-          {
-            text: "Use Demo Mode",
-            onPress: () => {
-              const randomDisease = diseases[Math.floor(Math.random() * diseases.length)];
-              router.push({
-                pathname: "/result",
-                params: {
-                  image,
-                  prediction: randomDisease.key,
-                  confidence: (90 + Math.random() * 9).toFixed(1),
-                  crop: randomDisease.title.split(' ')[0],
-                  disease: randomDisease.title,
-                  cause: randomDisease.cause,
-                  prevention: JSON.stringify(randomDisease.prevention),
-                  isDemo: 'true',
-                },
-              });
+    } catch (e: any) {
+      console.log('[Scan] Server prediction failed:', e);
+      const errorMessage = e.message || '';
+
+      if (errorMessage.includes("Unrelated or invalid image")) {
+        Alert.alert(
+          "Invalid Image",
+          errorMessage,
+          [{ text: "OK", style: "default" }]
+        );
+      } else {
+        const { diseases } = require("./home");
+        Alert.alert(
+          "Connection Offline",
+          "Could not connect to the AgroScan server. Would you like to run in offline Demo Mode?",
+          [
+            {
+              text: "Cancel",
+              style: "cancel",
             },
-          },
-        ]
-      );
+            {
+              text: "Use Demo Mode",
+              onPress: () => {
+                const randomDisease = diseases[Math.floor(Math.random() * diseases.length)];
+                router.push({
+                  pathname: "/result",
+                  params: {
+                    image,
+                    prediction: randomDisease.key,
+                    confidence: (90 + Math.random() * 9).toFixed(1),
+                    crop: randomDisease.title.split(' ')[0],
+                    disease: randomDisease.title,
+                    cause: randomDisease.cause,
+                    prevention: JSON.stringify(randomDisease.prevention),
+                    isDemo: 'true',
+                  },
+                });
+              },
+            },
+          ]
+        );
+      }
     } finally {
       setLoading(false);
     }

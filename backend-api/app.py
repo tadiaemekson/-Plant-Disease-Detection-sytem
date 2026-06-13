@@ -364,6 +364,12 @@ def predict():
         img_bytes = image_file.read()
         prediction_key, confidence = predict_image(img_bytes)
         
+        # Validation threshold check: reject unrelated or poor quality images
+        if confidence < 40.0:
+            return jsonify({
+                "error": "Unrelated or invalid image. Please take a clear, close-up photo of a crop leaf from Apple, Blueberry, Cherry, Corn, Grape, Orange, Peach, Pepper, Potato, Raspberry, Soybean, Squash, Strawberry, or Tomato."
+            }), 400
+        
         # Save image locally in static uploads for reference
         os.makedirs('./static/uploads', exist_ok=True)
         timestamp_str = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
